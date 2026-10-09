@@ -153,6 +153,7 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
       <span class="muted" id="v3d-status">Drag to rotate all eight together · scroll or pinch to zoom</span>
       <button type="button" class="v3d-btn" id="v3d-play">Play (110 MB)</button>
       <button type="button" class="v3d-btn" id="v3d-tex" aria-pressed="true">Texture</button>
+      <button type="button" class="v3d-btn" id="v3d-wire" aria-pressed="false">Wireframe</button>
       <button type="button" class="v3d-btn" id="v3d-reset">Reset view</button>
     </div>
   </div>
@@ -389,7 +390,12 @@ resetView();
 
 const head = new THREE.DirectionalLight(0xffffff, 2.2);   // headlight: follows the camera
 camera.add(head); head.position.set(0.6, 0.8, 0.2);
-const clay = new THREE.MeshStandardMaterial({ color: 0xcfcdc6, roughness: 0.85, metalness: 0, flatShading: true });
+// surfaces are pushed back a little so the wireframe drawn on the same triangles is not hidden by them
+const clay = new THREE.MeshStandardMaterial({ color: 0xcfcdc6, roughness: 0.85, metalness: 0, flatShading: true,
+  polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+const wireMat = new THREE.MeshBasicMaterial({ color: 0x15171a, wireframe: true, transparent: true, opacity: 0.5 });
+const wires = [];
+let showWire = false;
 const scenes = cells.map(() => {
   const s = new THREE.Scene();
   s.add(new THREE.HemisphereLight(0xffffff, 0x8a8a80, 1.1));
@@ -415,12 +421,17 @@ const url = (cell, f) => `assets/vdmc3d/${cell.dataset.set}/${cell.dataset.kind}
 
 function loadFrame(i, f) {
   return loader.loadAsync(url(cells[i], f)).then(gltf => {
-    gltf.scene.traverse(o => {
-      if (!o.isMesh) return;
+    const found = [];
+    gltf.scene.traverse(o => { if (o.isMesh) found.push(o); });
+    for (const o of found) {
       const tex = o.material && o.material.map ? o.material : null;
-      if (tex) { tex.metalness = 0; tex.roughness = 0.9; }
+      if (tex) { tex.metalness = 0; tex.roughness = 0.9; tex.polygonOffset = true; tex.polygonOffsetFactor = 1; tex.polygonOffsetUnits = 1; }
       meshes.push({ mesh: o, textured: tex });
-    });
+      const w = new THREE.Mesh(o.geometry, wireMat);   // same triangles, edges only; follows the frame's visibility
+      w.visible = showWire;
+      o.add(w);
+      wires.push(w);
+    }
     gltf.scene.visible = f === shown % FRAMES[cells[i].dataset.set];
     scenes[i].add(gltf.scene);
     seq[i][f] = gltf.scene;
@@ -499,6 +510,12 @@ function frame(t) {
 }
 requestAnimationFrame(frame);
 
+document.getElementById('v3d-wire').addEventListener('click', e => {
+  showWire = !showWire;
+  e.currentTarget.setAttribute('aria-pressed', String(showWire));
+  for (const w of wires) w.visible = showWire;
+  requestRender();
+});
 document.getElementById('v3d-tex').addEventListener('click', e => {
   showTexture = !showTexture;
   e.currentTarget.textContent = showTexture ? 'Texture' : 'Clay';
