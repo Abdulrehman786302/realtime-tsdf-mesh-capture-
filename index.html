@@ -137,26 +137,26 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
         <div class="v3d-col">Subdivision 1</div>
         <div class="v3d-col">Subdivision 2</div>
         <div class="v3d-col">Subdivision 3</div>
-        <div class="v3d-row"><span>Decimation</span><b>0.04</b></div>
-        <div class="v3d-cell" data-set="d004" data-kind="base"><span>2,326 faces</span></div>
-        <div class="v3d-cell" data-set="d004" data-kind="sub1"><span>9,304 faces</span></div>
-        <div class="v3d-cell" data-set="d004" data-kind="sub2"><span>37,216 faces</span></div>
-        <div class="v3d-cell" data-set="d004" data-kind="sub3"><span>148,864 faces</span></div>
         <div class="v3d-row"><span>Decimation</span><b>0.01</b></div>
         <div class="v3d-cell" data-set="d001" data-kind="base"><span>2,446 faces</span></div>
         <div class="v3d-cell" data-set="d001" data-kind="sub1"><span>9,784 faces</span></div>
         <div class="v3d-cell" data-set="d001" data-kind="sub2"><span>39,136 faces</span></div>
         <div class="v3d-cell" data-set="d001" data-kind="sub3"><span>156,544 faces</span></div>
+        <div class="v3d-row"><span>Anais</span><b>0.01</b></div>
+        <div class="v3d-cell" data-set="d001a" data-kind="base"><span>2,704 faces</span></div>
+        <div class="v3d-cell" data-set="d001a" data-kind="sub1"><span>10,816 faces</span></div>
+        <div class="v3d-cell" data-set="d001a" data-kind="sub2"><span>43,264 faces</span></div>
+        <div class="v3d-cell" data-set="d001a" data-kind="sub3"><span>173,056 faces</span></div>
       </div>
     </div>
     <div class="v3d-bar">
       <span class="muted" id="v3d-status">Drag to rotate all eight together · scroll or pinch to zoom</span>
-      <button type="button" class="v3d-btn" id="v3d-play">Play (100 MB)</button>
+      <button type="button" class="v3d-btn" id="v3d-play">Play (110 MB)</button>
       <button type="button" class="v3d-btn" id="v3d-tex" aria-pressed="true">Texture</button>
       <button type="button" class="v3d-btn" id="v3d-reset">Reset view</button>
     </div>
   </div>
-  <figcaption>Frame 0 decoded by the V-DMC test model: the base mesh the encoder sends, then the decoded mesh at 1, 2 and 3 subdivision levels (each level splits every triangle in four and adds displacements). Top row decimation target 0.04, bottom row 0.01 (a different take of the same performer); face counts are for frame 1. Play loads the decoded sequences at 30 fps: 20 frames for 0.04 and 10 for 0.01, which loops twice as often. Switch to clay to compare the geometry alone.</figcaption>
+  <figcaption>Frame 0 decoded by the V-DMC test model: the base mesh the encoder sends, then the decoded mesh at 1, 2 and 3 subdivision levels (each level splits every triangle in four and adds displacements). Both rows use decimation target 0.01: top, the take used throughout this page; bottom, a second performer (Anais). Face counts are for frame 1. Play loads the decoded sequences at 30 fps: 10 frames for the top row, which loops twice as often, and 20 for Anais. Switch to clay to compare the geometry alone.</figcaption>
 </section>
 
 <section>
@@ -404,7 +404,7 @@ function applyLook() {
 }
 
 // each row is a decoded sequence: assets/vdmc3d/<set>/<kind>_<frame>.glb
-const FRAMES = { d004: 20, d001: 10 };
+const FRAMES = { d001: 10, d001a: 20 };
 const FPS = 30;
 const IDLE = 'Drag to rotate all eight together · scroll or pinch to zoom';
 const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/');
