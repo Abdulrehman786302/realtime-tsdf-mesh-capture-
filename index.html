@@ -130,24 +130,25 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
         <div class="v3d-col">Subdivision 2</div>
         <div class="v3d-col">Subdivision 3</div>
         <div class="v3d-row"><span>Decimation</span><b>0.04</b></div>
-        <div class="v3d-cell" data-glb="assets/vdmc3d/d004_base.glb"><span>2,326 faces</span></div>
-        <div class="v3d-cell" data-glb="assets/vdmc3d/d004_sub1.glb"><span>9,304 faces</span></div>
-        <div class="v3d-cell" data-glb="assets/vdmc3d/d004_sub2.glb"><span>37,216 faces</span></div>
-        <div class="v3d-cell" data-glb="assets/vdmc3d/d004_sub3.glb"><span>148,864 faces</span></div>
+        <div class="v3d-cell" data-set="d004" data-kind="base"><span>2,326 faces</span></div>
+        <div class="v3d-cell" data-set="d004" data-kind="sub1"><span>9,304 faces</span></div>
+        <div class="v3d-cell" data-set="d004" data-kind="sub2"><span>37,216 faces</span></div>
+        <div class="v3d-cell" data-set="d004" data-kind="sub3"><span>148,864 faces</span></div>
         <div class="v3d-row"><span>Decimation</span><b>0.01</b></div>
-        <div class="v3d-cell" data-glb="assets/vdmc3d/d001_base.glb"><span>2,446 faces</span></div>
-        <div class="v3d-cell" data-glb="assets/vdmc3d/d001_sub1.glb"><span>9,784 faces</span></div>
-        <div class="v3d-cell" data-glb="assets/vdmc3d/d001_sub2.glb"><span>39,136 faces</span></div>
-        <div class="v3d-cell" data-glb="assets/vdmc3d/d001_sub3.glb"><span>156,544 faces</span></div>
+        <div class="v3d-cell" data-set="d001" data-kind="base"><span>2,446 faces</span></div>
+        <div class="v3d-cell" data-set="d001" data-kind="sub1"><span>9,784 faces</span></div>
+        <div class="v3d-cell" data-set="d001" data-kind="sub2"><span>39,136 faces</span></div>
+        <div class="v3d-cell" data-set="d001" data-kind="sub3"><span>156,544 faces</span></div>
       </div>
     </div>
     <div class="v3d-bar">
       <span class="muted" id="v3d-status">Drag to rotate all eight together · scroll or pinch to zoom</span>
+      <button type="button" class="v3d-btn" id="v3d-play">Play (100 MB)</button>
       <button type="button" class="v3d-btn" id="v3d-tex" aria-pressed="true">Texture</button>
       <button type="button" class="v3d-btn" id="v3d-reset">Reset view</button>
     </div>
   </div>
-  <figcaption>Frame 0 decoded by the V-DMC test model: the base mesh the encoder sends, then the decoded mesh at 1, 2 and 3 subdivision levels (each level splits every triangle in four and adds displacements). Top row decimation target 0.04, bottom row 0.01 (a different take of the same performer). Switch to clay to compare the geometry alone.</figcaption>
+  <figcaption>Frame 0 decoded by the V-DMC test model: the base mesh the encoder sends, then the decoded mesh at 1, 2 and 3 subdivision levels (each level splits every triangle in four and adds displacements). Top row decimation target 0.04, bottom row 0.01 (a different take of the same performer); face counts are for frame 1. Play loads the decoded sequences at 30 fps: 20 frames for 0.04 and 10 for 0.01, which loops twice as often. Switch to clay to compare the geometry alone.</figcaption>
 </section>
 
 <section>
@@ -376,28 +377,72 @@ function applyLook() {
   requestRender();
 }
 
-function load() {
-  const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/');
-  const loader = new GLTFLoader().setDRACOLoader(draco);
-  let done = 0, failed = 0;
-  cells.forEach((cell, i) => {
-    loader.load(cell.dataset.glb, gltf => {
-      gltf.scene.traverse(o => {
-        if (!o.isMesh) return;
-        const tex = o.material && o.material.map ? o.material : null;
-        if (tex) { tex.metalness = 0; tex.roughness = 0.9; }
-        meshes.push({ mesh: o, textured: tex });
-      });
-      scenes[i].add(gltf.scene);
-      done++; progress(done, failed); applyLook();
-    }, undefined, () => { failed++; progress(done, failed); });
+// each row is a decoded sequence: assets/vdmc3d/<set>/<kind>_<frame>.glb
+const FRAMES = { d004: 20, d001: 10 };
+const FPS = 30;
+const IDLE = 'Drag to rotate all eight together · scroll or pinch to zoom';
+const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/');
+const loader = new GLTFLoader().setDRACOLoader(draco);
+const seq = cells.map(() => []);   // per cell: frame -> gltf scene
+let shown = 0, playing = false, lastTick = 0, allLoaded = false;
+const url = (cell, f) => `assets/vdmc3d/${cell.dataset.set}/${cell.dataset.kind}_${String(f).padStart(3, '0')}.glb`;
+
+function loadFrame(i, f) {
+  return loader.loadAsync(url(cells[i], f)).then(gltf => {
+    gltf.scene.traverse(o => {
+      if (!o.isMesh) return;
+      const tex = o.material && o.material.map ? o.material : null;
+      if (tex) { tex.metalness = 0; tex.roughness = 0.9; }
+      meshes.push({ mesh: o, textured: tex });
+    });
+    gltf.scene.visible = f === shown % FRAMES[cells[i].dataset.set];
+    scenes[i].add(gltf.scene);
+    seq[i][f] = gltf.scene;
+    applyLook();
   });
-  function progress(d, f) {
-    status.textContent = d + f < cells.length ? `Loading meshes… ${d} / ${cells.length}`
-      : f ? `${f} mesh(es) failed to load` : 'Drag to rotate all eight together · scroll or pinch to zoom';
-  }
-  progress(0, 0);
 }
+
+function showFrame(t) {
+  shown = t;
+  cells.forEach((cell, i) => {
+    const f = t % FRAMES[cell.dataset.set];
+    seq[i].forEach((s, k) => { if (s) s.visible = k === f; });
+  });
+  requestRender();
+}
+
+function load() {   // frame 0 of every cell: the still view
+  let done = 0, failed = 0;
+  cells.forEach((cell, i) => loadFrame(i, 0).then(() => done++, () => failed++).then(() => {
+    status.textContent = done + failed < cells.length ? `Loading meshes… ${done} / ${cells.length}`
+      : failed ? `${failed} mesh(es) failed to load` : IDLE;
+  }));
+}
+
+async function loadAll() {   // the rest of every sequence, 6 files at a time
+  const jobs = [];
+  cells.forEach((cell, i) => { for (let f = 1; f < FRAMES[cell.dataset.set]; f++) if (!seq[i][f]) jobs.push([i, f]); });
+  const total = jobs.length;
+  let done = 0, failed = 0;
+  const worker = async () => {
+    while (jobs.length) {
+      const [i, f] = jobs.shift();
+      try { await loadFrame(i, f); done++; } catch { failed++; }
+      status.textContent = `Loading frames… ${done} / ${total}`;
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  allLoaded = failed === 0;
+  status.textContent = failed ? `${failed} frame(s) failed to load` : IDLE;
+}
+
+const playBtn = document.getElementById('v3d-play');
+playBtn.addEventListener('click', async () => {
+  if (!allLoaded) { playBtn.disabled = true; await loadAll(); playBtn.disabled = false; }
+  playing = !playing;
+  playBtn.textContent = playing ? 'Pause' : 'Play';
+  requestRender();
+});
 
 let needsRender = true;
 function requestRender() { needsRender = true; }
@@ -405,8 +450,9 @@ controls.addEventListener('change', requestRender);
 new ResizeObserver(requestRender).observe(box);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', requestRender);
 
-function frame() {
+function frame(t) {
   requestAnimationFrame(frame);
+  if (playing && t - lastTick >= 1000 / FPS) { lastTick = t; showFrame(shown + 1); }
   const moving = controls.update();
   if (!needsRender && !moving) return;
   needsRender = false;
@@ -425,7 +471,7 @@ function frame() {
     renderer.render(scenes[i], camera);
   });
 }
-frame();
+requestAnimationFrame(frame);
 
 document.getElementById('v3d-tex').addEventListener('click', e => {
   showTexture = !showTexture;
@@ -435,7 +481,7 @@ document.getElementById('v3d-tex').addEventListener('click', e => {
 });
 document.getElementById('v3d-reset').addEventListener('click', resetView);
 
-// load the 7 MB of meshes only when the viewer comes near the screen
+// load the still frame (~7 MB) only when the viewer comes near the screen; Play loads the sequences
 new IntersectionObserver((entries, obs) => {
   if (entries.some(en => en.isIntersecting)) { obs.disconnect(); load(); }
 }, { rootMargin: '300px' }).observe(box);
