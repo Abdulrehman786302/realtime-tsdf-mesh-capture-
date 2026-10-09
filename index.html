@@ -80,6 +80,14 @@ ul { margin: 0 0 14px; padding-left: 20px; }
 li { margin: 4px 0; }
 pre { background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; font: 13px/1.5 "JetBrains Mono", monospace; color: var(--ink); }
 footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-align: center; }
+.stg-card { padding: 12px; overflow-x: auto; }
+.stg { display: grid; grid-template-columns: repeat(6, minmax(100px, 1fr)); gap: 6px 8px; min-width: 640px; }
+.stg img { width: 100%; height: auto; display: block; border-radius: 8px; background: #f4f3ef; }
+.stg-h { text-align: center; font-size: 12px; font-weight: 600; color: var(--ink-soft); line-height: 1.3; align-self: end; }
+.stg-h small { display: block; font-weight: 400; color: var(--ink-faint); font-family: "JetBrains Mono", monospace; font-size: 11px; }
+.stg-n { text-align: center; font: 11px "JetBrains Mono", monospace; color: var(--ink-faint); }
+.stg-scale { display: flex; align-items: center; gap: 8px; justify-content: flex-end; margin-top: 10px; font: 11px "JetBrains Mono", monospace; color: var(--ink-faint); }
+.stg-scale i { display: block; width: 160px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #000004, #420a68, #932667, #dd513a, #fca50a, #fcffa4); }
 .v3d-card { padding: 10px; }
 .v3d-scroll { overflow-x: auto; }
 .v3d { position: relative; display: grid; grid-template-columns: 74px repeat(4, minmax(130px, 1fr)); grid-auto-rows: auto; gap: 6px; min-width: 620px; }
@@ -256,8 +264,26 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
   <h2>Very coarse base mesh: decimation target 0.04, 20-frame sequence</h2>
   <p>To cut the base mesh, the largest fixed cost above, the encoder's decimation target was lowered from 0.7 to 0.04: the source frames (~30,000 faces) become a base mesh of only <b>2,326 faces</b>, and the detail is carried by the subdivision displacements instead. All runs encode the same 20 frames (two groups of 10, inter coding on), 1024&times;1024 texture.</p>
   <figure style="margin:0">
-    <div class="card" style="padding:8px"><img src="assets/vdmc_stages_frame0.png" alt="Frame 0, best quality, subdivision 3: the 2,326-face base mesh, the subdivided mesh, then each level of displacement added" style="width:100%;height:auto;display:block;border-radius:8px"></div>
-    <figcaption>Frame 0, best quality, subdivision 3: base mesh, subdivided mesh, then each level of displacement (bottom: head, colour = how far vertices moved, 0&ndash;2 mm).</figcaption>
+    <div class="card stg-card">
+      <div class="stg">
+        <div class="stg-h">Base<small>2,326 faces</small></div>
+        <div class="stg-h">Subdivided, no displacement<small>148,864 faces</small></div>
+        <div class="stg-h">+ LoD 0<small>148,864 faces</small></div>
+        <div class="stg-h">+ LoD 0&ndash;1<small>148,864 faces</small></div>
+        <div class="stg-h">+ LoD 0&ndash;2<small>148,864 faces</small></div>
+        <div class="stg-h">+ LoD 0&ndash;3 = decoded<small>148,864 faces</small></div>
+        <img src="assets/vdmc_stages/body_0.png" alt="Base mesh, front"><img src="assets/vdmc_stages/body_1.png" alt="Subdivided mesh, front">
+        <img src="assets/vdmc_stages/body_2.png" alt="Plus LoD 0, front"><img src="assets/vdmc_stages/body_3.png" alt="Plus LoD 0 to 1, front">
+        <img src="assets/vdmc_stages/body_4.png" alt="Plus LoD 0 to 2, front"><img src="assets/vdmc_stages/body_5.png" alt="Decoded mesh, front">
+        <img src="assets/vdmc_stages/head_0.png" alt="Base mesh, head"><img src="assets/vdmc_stages/head_1.png" alt="Subdivided head, no displacement">
+        <img src="assets/vdmc_stages/head_2.png" alt="Head plus LoD 0, coloured by displacement"><img src="assets/vdmc_stages/head_3.png" alt="Head plus LoD 0 to 1, coloured by displacement">
+        <img src="assets/vdmc_stages/head_4.png" alt="Head plus LoD 0 to 2, coloured by displacement"><img src="assets/vdmc_stages/head_5.png" alt="Decoded head, coloured by displacement">
+        <div class="stg-n">head</div><div class="stg-n">moved: 0.00 / 0.00 mm</div><div class="stg-n">moved: 0.47 / 2.4 mm</div>
+        <div class="stg-n">moved: 0.95 / 7.4 mm</div><div class="stg-n">moved: 1.16 / 8.0 mm</div><div class="stg-n">moved: 1.18 / 8.3 mm</div>
+      </div>
+      <div class="stg-scale"><span>0 mm</span><i></i><span>2 mm +</span></div>
+    </div>
+    <figcaption>Frame 0, best quality, subdivision 3, seen from the front: the base mesh, the subdivided mesh, then each level of displacement added. Bottom: the head, coloured by how far each vertex moved from the subdivided mesh (median / p99 over the top 32 cm).</figcaption>
   </figure>
 
   <h3>Presets (subdivision 3)</h3>
