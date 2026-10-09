@@ -215,6 +215,48 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
 </section>
 
 <section>
+  <h2>Very coarse base mesh: decimation target 0.04, 20-frame sequence</h2>
+  <p>To cut the base mesh, the largest fixed cost above, the encoder's decimation target was lowered from 0.7 to 0.04: the source frames (~30,000 faces) become a base mesh of only <b>2,326 faces</b>, and the detail is carried by the subdivision displacements instead. All runs encode the same 20 frames (two groups of 10, inter coding on), 1024&times;1024 texture.</p>
+  <figure style="margin:0">
+    <div class="card" style="padding:8px"><img src="assets/vdmc_stages_frame0.png" alt="Frame 0, best quality, subdivision 3: the 2,326-face base mesh, the subdivided mesh, then each level of displacement added" style="width:100%;height:auto;display:block;border-radius:8px"></div>
+    <figcaption>Frame 0, best quality, subdivision 3: base mesh, subdivided mesh, then each level of displacement (bottom: head, colour = how far vertices moved, 0&ndash;2 mm).</figcaption>
+  </figure>
+
+  <h3>Presets (subdivision 3)</h3>
+  <div class="card tbl">
+    <table>
+      <thead><tr><th>Preset</th><th>liftingQP / texture QP</th><th class="num">Size / frame</th><th class="num">Base / disp. / texture</th><th class="num">Geometry error (median / p99)</th></tr></thead>
+      <tbody>
+        <tr><td>Best quality</td><td>10,16,16 / 18</td><td class="num">111 KB</td><td class="num">7 / 30 / 64 %</td><td class="num">0.20 / 3.7 mm</td></tr>
+        <tr><td><b>Compromise</b></td><td>24,34,34 / 22</td><td class="num"><b>66 KB</b></td><td class="num">11 / 18 / 70 %</td><td class="num">0.37 / 3.8 mm</td></tr>
+        <tr><td>Best compression</td><td>24,34,34 / 34</td><td class="num">31 KB</td><td class="num">23 / 39 / 38 %</td><td class="num">0.37 / 3.8 mm</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Subdivision levels (liftingQP 22,28,28, texture QP 22)</h3>
+  <div class="card tbl">
+    <table>
+      <thead><tr><th>Subdivisions</th><th class="num">Decoded faces / frame</th><th class="num">Size / frame</th><th class="num">Geometry error (median / p99)</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td class="num">9,304</td><td class="num">53 KB</td><td class="num">0.35 / 6.1 mm</td></tr>
+        <tr><td>2</td><td class="num">37,216</td><td class="num">62 KB</td><td class="num">0.31 / 4.1 mm</td></tr>
+        <tr><td>3</td><td class="num">148,864</td><td class="num">68 KB</td><td class="num">0.33 / 3.7 mm</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ul style="margin-top:14px">
+    <li><b>The base mesh shrinks to ~7 KB per frame</b> (from ~37 KB), and the compromise preset drops from 88 to <b>66 KB per frame</b> (~16 Mbit/s at 30 fps); best compression reaches 31 KB.</li>
+    <li><b>Geometry pays for it:</b> the median error stays at 0.2&ndash;0.4 mm, but the p99 rises to ~3.7 mm at subdivision 3 (0.7 mm with the 0.7 target), and to 6.1 mm at subdivision 1 &mdash; a 2,326-face base cannot follow fine shapes (fingers, hair, folds) that the displacements then have to reach.</li>
+    <li>Geometry settings decide the error: compromise and best compression share the same liftingQP and decode to the same geometry; the texture QP only changes size and look.</li>
+    <li>The base mesh was coded intra in every frame (0 B inter at subdivision 3) even with inter coding on, so the temporal saving is still to be had.</li>
+    <li>Encoding takes 38&ndash;48 s per frame (mostly texture compression and pre-processing); decoding 20 frames takes 2.6 s.</li>
+  </ul>
+  <p class="muted">Error: distance from every decoded vertex to the source frame's surface, all 20 frames, in millimetres (encoder units 2.34 per mm).</p>
+</section>
+
+<section>
   <h2>Limitations</h2>
   <ul>
     <li>Large areas no camera sees (behind a held instrument, between the legs) stay open; capping them would be a guess.</li>
@@ -229,7 +271,8 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
   <ul>
     <li>Raycast preview of the TSDF in Unity, to tell volume problems from meshing problems.</li>
     <li>Surface Nets as an alternative to marching cubes: fewer slivers, fewer and better-shaped triangles.</li>
-    <li>A lower decimation target to shrink the base mesh, the largest fixed cost in the bitstream.</li>
+    <li>A decimation target between 0.04 and 0.7: the base mesh is now ~7 KB per frame at 0.04, but its p99 geometry error rose to ~3.7 mm; a middle target should keep most of the size saving at closer to 1 mm.</li>
+    <li>Get the base mesh coded inter (it is still intra in every frame) to save across frames.</li>
   </ul>
 </section>
 
