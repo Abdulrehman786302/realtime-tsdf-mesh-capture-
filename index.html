@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watertight Mesh Capture</title>
+<meta name="description" content="Volumetric mesh capture from a 10-camera RGB-D rig: sparse brick TSDF, marching cubes, watertight cleanup, V-DMC compression and Alembic export.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f7f4; --paper: #ffffff; --ink: #16191c; --ink-soft: #4a5258; --ink-faint: #858d93;
+  --line: #e1e3e0; --accent: #2f6fdb; --accent-soft: #e6eefc; --good: #1f8a5b; --bad: #c2453b;
+  --chip: #eef0ee; --code: #f1f2ef; --shadow: rgba(20,25,30,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1215; --paper: #161a1e; --ink: #e8ebee; --ink-soft: #a9b2b9; --ink-faint: #737d85;
+    --line: #262c32; --accent: #7aa7ff; --accent-soft: #1a2638; --good: #4cc38a; --bad: #ff7a6e;
+    --chip: #1d2227; --code: #1b2025; --shadow: rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1215; --paper: #161a1e; --ink: #e8ebee; --ink-soft: #a9b2b9; --ink-faint: #737d85;
+  --line: #262c32; --accent: #7aa7ff; --accent-soft: #1a2638; --good: #4cc38a; --bad: #ff7a6e;
+  --chip: #1d2227; --code: #1b2025; --shadow: rgba(0,0,0,.4);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 Inter, system-ui, sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+header.hero { padding: 64px 0 28px; text-align: center; }
+.eyebrow { font: 500 13px/1 "JetBrains Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+h1 { font-size: clamp(30px, 5vw, 48px); line-height: 1.12; margin: 14px 0 10px; letter-spacing: -.02em; }
+.sub { color: var(--ink-soft); font-size: clamp(16px, 2.2vw, 19px); max-width: 720px; margin: 0 auto; }
+.authors { margin: 22px 0 4px; font-weight: 500; }
+.affil { color: var(--ink-faint); font-size: 14px; }
+.links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 24px 0 8px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; background: var(--ink); color: var(--bg); font-weight: 600; font-size: 14px; }
+.btn:hover { text-decoration: none; opacity: .88; }
+.btn.off { background: var(--chip); color: var(--ink-faint); cursor: default; }
+.btn svg { width: 16px; height: 16px; }
+.tldr { margin: 28px auto 0; max-width: 760px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); font-size: 15px; }
+.tldr b { color: var(--accent); }
+section { padding: 44px 0 8px; }
+h2 { font-size: 26px; letter-spacing: -.01em; margin: 0 0 14px; }
+h3 { font-size: 18px; margin: 26px 0 8px; }
+p { margin: 0 0 14px; color: var(--ink); }
+.muted { color: var(--ink-soft); }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 1px 2px var(--shadow); }
+.media { aspect-ratio: 16 / 9; display: grid; place-items: center; text-align: center; color: var(--ink-faint); font-size: 14px; padding: 16px; overflow: hidden; }
+.media video, .media img { width: 100%; height: 100%; object-fit: contain; display: block; }
+figcaption { color: var(--ink-faint); font-size: 14px; margin-top: 8px; text-align: center; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+@media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.stat { padding: 16px; }
+.stat .v { font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+.stat .k { color: var(--ink-soft); font-size: 14px; }
+.pipe { padding: 18px; overflow-x: auto; }
+.pipe svg { width: 100%; min-width: 640px; height: auto; display: block; }
+.pipe text { font-family: Inter, sans-serif; fill: var(--ink); }
+.pipe .box { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.2; }
+.pipe .out { fill: var(--chip); stroke: var(--line); }
+.pipe .arrow { stroke: var(--ink-faint); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+.pipe .small { font-size: 11px; fill: var(--ink-soft); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--ink-soft); font-size: 13px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl { overflow-x: auto; padding: 4px 8px; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.tag.good { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+.tag.bad { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
+ul { margin: 0 0 14px; padding-left: 20px; }
+li { margin: 4px 0; }
+pre { background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; font: 13px/1.5 "JetBrains Mono", monospace; color: var(--ink); }
+footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-align: center; }
+.theme { position: fixed; top: 14px; right: 14px; background: var(--paper); border: 1px solid var(--line); color: var(--ink-soft); border-radius: 999px; padding: 6px 12px; font: 500 13px Inter, sans-serif; cursor: pointer; }
+</style>
+</head>
+<body>
+<button class="theme" id="theme" aria-label="Toggle dark mode">Theme</button>
+
+<header class="hero wrap">
+  <div class="eyebrow">Volumetric video · TSDF · Mesh compression</div>
+  <h1>Watertight Volumetric Mesh Capture<br>with MPEG V-DMC Compression</h1>
+  <p class="sub">A 10-camera RGB-D rig fused into a sparse TSDF, meshed by marching cubes, cleaned to an almost watertight textured mesh, and exported as V-DMC bitstreams and Alembic.</p>
+  <div class="authors">Abdul Rehman</div>
+  <div class="affil">French Touch Factory · ITHACA</div>
+  <div class="links">
+    <span class="btn off" title="Coming soon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h9l5 5v15H6zM14 3v5h5"/></svg>Paper (soon)</span>
+    <a class="btn" href="#video">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Video</a>
+    <span class="btn off" title="Code not public yet">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5z"/></svg>Code (private)</span>
+  </div>
+  <div class="tldr"><b>TL;DR</b> Brick TSDF → marching cubes → sliver-safe repair, inner-shell guard, smoothing and ear-clipped hole caps → decimate + texture bake → V-DMC at 54–147 KB per frame with sub-millimetre geometry error, plus Alembic export.</div>
+</header>
+
+<main class="wrap">
+
+<section id="video">
+  <figure class="card media" style="margin:0">
+    <!-- Replace with a cleared capture:  <video src="assets/teaser.mp4" autoplay muted loop playsinline></video> -->
+    <div>Teaser video goes here<br><span style="font-family:'JetBrains Mono',monospace">assets/teaser.mp4</span></div>
+  </figure>
+  <figcaption>Decoded V-DMC mesh sequence next to the source capture.</figcaption>
+</section>
+
+<section>
+  <h2>Abstract</h2>
+  <p>We build a mesh-based volumetric video pipeline for a calibrated 10-camera RGB-D rig. Depth is fused into a sparse truncated signed distance field (8³ voxel bricks, 3.5 mm voxels, 2 cm truncation) with push-pull hole filling and silhouette and free-space carving. Marching cubes extracts the surface; a repair stage keeps thin triangles that a naive cleanup would delete, a guard on the raw field removes the inner shell that carving leaves under the skin, and boundary loops up to 300 edges are closed by ear clipping. The cleaned mesh is decimated, UV-unwrapped and texture-baked, then compressed with the MPEG V-DMC test model and exported to Alembic. Every change was tested live on a watertightness readout in Unity before being kept.</p>
+</section>
+
+<section>
+  <h2>Pipeline</h2>
+  <div class="card pipe">
+    <svg viewBox="0 0 900 250" role="img" aria-label="Pipeline diagram">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor" style="color:var(--ink-faint)"/></marker></defs>
+      <rect class="box" x="10" y="85" width="140" height="80" rx="10"/>
+      <text x="80" y="118" text-anchor="middle" font-weight="600" font-size="14">10× RGB-D</text>
+      <text x="80" y="138" text-anchor="middle" class="small">MKV / live, calibrated</text>
+      <rect class="box" x="180" y="85" width="150" height="80" rx="10"/>
+      <text x="255" y="114" text-anchor="middle" font-weight="600" font-size="14">Brick TSDF</text>
+      <text x="255" y="134" text-anchor="middle" class="small">8³ bricks, fill, silhouette</text>
+      <text x="255" y="148" text-anchor="middle" class="small">+ free-space carving</text>
+      <rect class="box" x="360" y="85" width="150" height="80" rx="10"/>
+      <text x="435" y="114" text-anchor="middle" font-weight="600" font-size="14">Marching cubes</text>
+      <text x="435" y="134" text-anchor="middle" class="small">raw-value shell guard,</text>
+      <text x="435" y="148" text-anchor="middle" class="small">surface smoothing</text>
+      <rect class="box" x="540" y="85" width="150" height="80" rx="10"/>
+      <text x="615" y="114" text-anchor="middle" font-weight="600" font-size="14">Repair + caps</text>
+      <text x="615" y="134" text-anchor="middle" class="small">keep slivers, winding,</text>
+      <text x="615" y="148" text-anchor="middle" class="small">ear-clipped hole caps</text>
+      <path class="arrow" d="M150 125H176"/><path class="arrow" d="M330 125H356"/><path class="arrow" d="M510 125H536"/>
+      <rect class="box" x="715" y="85" width="80" height="80" rx="10"/>
+      <text x="755" y="114" text-anchor="middle" font-weight="600" font-size="13">Reduce</text>
+      <text x="755" y="134" text-anchor="middle" class="small">decimate,</text>
+      <text x="755" y="148" text-anchor="middle" class="small">UV + bake</text>
+      <path class="arrow" d="M690 125H711"/>
+      <rect class="out" x="815" y="55" width="80" height="60" rx="10"/>
+      <text x="855" y="81" text-anchor="middle" font-weight="600" font-size="13">V-DMC</text>
+      <text x="855" y="98" text-anchor="middle" class="small">.vmesh</text>
+      <rect class="out" x="815" y="135" width="80" height="60" rx="10"/>
+      <text x="855" y="161" text-anchor="middle" font-weight="600" font-size="13">Alembic</text>
+      <text x="855" y="178" text-anchor="middle" class="small">.abc</text>
+      <path class="arrow" d="M795 115C805 100 805 90 811 86"/><path class="arrow" d="M795 135C805 150 805 160 811 164"/>
+    </svg>
+  </div>
+</section>
+
+<section>
+  <h2>Key numbers</h2>
+  <div class="stats">
+    <div class="card stat"><div class="v">130k → 350</div><div class="k">open edges: raw marching-cubes mesh → reduced export (7 large unseen holes left open)</div></div>
+    <div class="card stat"><div class="v">2,450 → &lt;110</div><div class="k">genus of the main body (tunnels and handles)</div></div>
+    <div class="card stat"><div class="v">0.4 %</div><div class="k">double-layer faces in the encoded mesh, with hair kept</div></div>
+    <div class="card stat"><div class="v">54–147 KB</div><div class="k">per frame V-DMC (mesh + texture), depending on preset</div></div>
+    <div class="card stat"><div class="v">≤ 0.7 mm</div><div class="k">p99 geometry error of the decoded mesh (compromise preset)</div></div>
+    <div class="card stat"><div class="v">~33 s</div><div class="k">export per frame (mesh 3 s, decimate 10 s, UV 4 s, bake 10 s, write 6 s)</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Making the mesh watertight</h2>
+  <p class="muted">Each idea was switched on and off in Play mode while a live readout reported open edges, hole loops, non-manifold edges, pieces and genus. Ideas that did not move the numbers were removed.</p>
+  <div class="card tbl">
+    <table>
+      <thead><tr><th>Change</th><th>Measured effect</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>Keep thin marching-cubes slivers in repair</td><td>~66k slivers per frame had been deleted: open edges −91 %, hole loops −98 %, genus −90 %</td><td><span class="tag good">kept</span></td></tr>
+        <tr><td>Smooth the field near the surface</td><td>Genus −55 %, pieces −45 %, non-manifold edges to ~0</td><td><span class="tag good">kept</span></td></tr>
+        <tr><td>Inner-shell guard on raw values (max jump 1.9)</td><td>Removes the shell ~2 cm under the skin, keeps noisy hair (1.5 on smoothed values ate the hair)</td><td><span class="tag good">kept</span></td></tr>
+        <tr><td>Enclosed depth dropouts count as inside</td><td>Small extra gain on top of smoothing</td><td><span class="tag good">kept</span></td></tr>
+        <tr><td>Ear-clipped hole caps (≤ 300 edges)</td><td>Closes every remaining small hole; no fan spikes; no duplicate faces</td><td><span class="tag good">kept</span></td></tr>
+        <tr><td>Wider fill reach</td><td>No measurable change</td><td><span class="tag bad">removed</span></td></tr>
+        <tr><td>Unknown voxels as outside</td><td>No measurable change</td><td><span class="tag bad">removed</span></td></tr>
+        <tr><td>Centre-fan hole caps</td><td>Long spikes across large unseen holes</td><td><span class="tag bad">replaced</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>V-DMC compression</h2>
+  <h3>Presets (subdivision 3, decimation target 0.7, one frame)</h3>
+  <div class="card tbl">
+    <table>
+      <thead><tr><th>Preset</th><th>liftingQP / texture QP</th><th class="num">Size / frame</th><th class="num">Geometry error (median / p99)</th></tr></thead>
+      <tbody>
+        <tr><td>Best quality</td><td>10,16,16 / 18</td><td class="num">147 KB</td><td class="num">0.0 / 1.2 mm</td></tr>
+        <tr><td><b>Compromise</b></td><td>24,34,34 / 22</td><td class="num"><b>88 KB</b></td><td class="num">0.1 / 0.7 mm</td></tr>
+        <tr><td>Best compression</td><td>24,34,34 / 34</td><td class="num">54 KB</td><td class="num">0.1 / 0.7 mm</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Subdivision levels (liftingQP 22,28,28, texture QP 22)</h3>
+  <div class="card tbl">
+    <table>
+      <thead><tr><th>Subdivisions</th><th class="num">Decoded faces</th><th class="num">Size / frame</th><th class="num">Geometry error (p99)</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td class="num">87,452</td><td class="num">91.0 KB</td><td class="num">1.4 mm</td></tr>
+        <tr><td>2</td><td class="num">349,808</td><td class="num">92.4 KB</td><td class="num">1.4 mm</td></tr>
+        <tr><td>3</td><td class="num">1,399,232</td><td class="num">90.1 KB</td><td class="num">0.7 mm</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted" style="margin-top:10px">Point-to-surface distance from the decoded mesh to the exported mesh. Geometry stays near or under 1 mm in every case; the texture QP decides most of the size and the look, and the base mesh (~37 KB) is the largest fixed cost.</p>
+</section>
+
+<section>
+  <h2>Limitations</h2>
+  <ul>
+    <li>Large areas no camera sees (behind a held instrument, between the legs) stay open; capping them would be a guess.</li>
+    <li>Some inner shell remains in the full-resolution mesh (2.2 % double-layer faces), mostly removed by decimation (0.4 %).</li>
+    <li>Export runs offline at about 33 s per frame; the live mesh is for preview.</li>
+    <li>Thresholds are tuned for this rig and need re-tuning for other rigs or sensors.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Next</h2>
+  <ul>
+    <li>Raycast preview of the TSDF in Unity, to tell volume problems from meshing problems.</li>
+    <li>Surface Nets as an alternative to marching cubes: fewer slivers, fewer and better-shaped triangles.</li>
+    <li>A lower decimation target to shrink the base mesh, the largest fixed cost in the bitstream.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>BibTeX</h2>
+<pre>@misc{rehman2026watertightmeshcapture,
+  title  = {Watertight Volumetric Mesh Capture with MPEG V-DMC Compression},
+  author = {Rehman, Abdul},
+  year   = {2026},
+  note   = {French Touch Factory / ITHACA, project page}
+}</pre>
+</section>
+
+</main>
+
+<footer class="wrap">
+  © 2026 French Touch Factory · ITHACA. Page layout in the style of academic project pages.
+</footer>
+
+<script>
+(function () {
+  var root = document.documentElement, btn = document.getElementById('theme');
+  try { var s = localStorage.getItem('theme'); if (s) root.setAttribute('data-theme', s); } catch (e) {}
+  btn.addEventListener('click', function () {
+    var dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var next = dark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('theme', next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
