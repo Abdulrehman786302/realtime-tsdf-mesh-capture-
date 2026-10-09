@@ -80,6 +80,20 @@ ul { margin: 0 0 14px; padding-left: 20px; }
 li { margin: 4px 0; }
 pre { background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; font: 13px/1.5 "JetBrains Mono", monospace; color: var(--ink); }
 footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-align: center; }
+.v3d-card { padding: 10px; }
+.v3d-scroll { overflow-x: auto; }
+.v3d { position: relative; display: grid; grid-template-columns: 74px repeat(4, minmax(130px, 1fr)); grid-auto-rows: auto; gap: 6px; min-width: 620px; }
+.v3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.v3d-col { text-align: center; font-weight: 600; font-size: 13px; color: var(--ink-soft); padding: 4px 0; }
+.v3d-row { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 12px; color: var(--ink-soft); line-height: 1.3; }
+.v3d-row b { font-size: 16px; color: var(--ink); }
+.v3d-cell { position: relative; aspect-ratio: 3 / 5; border-radius: 10px; background: var(--code); border: 1px solid var(--line); cursor: grab; touch-action: none; }
+.v3d-cell:active { cursor: grabbing; }
+.v3d-cell span { position: absolute; left: 8px; bottom: 6px; font: 500 11px "JetBrains Mono", monospace; color: var(--ink-faint); z-index: 2; pointer-events: none; }
+.v3d-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; }
+.v3d-bar .muted { flex: 1 1 220px; }
+.v3d-btn { background: var(--paper); border: 1px solid var(--line); color: var(--ink); border-radius: 999px; padding: 5px 12px; font: 500 13px Inter, sans-serif; cursor: pointer; }
+.v3d-btn[aria-pressed="false"] { color: var(--ink-faint); }
 .theme { position: fixed; top: 14px; right: 14px; background: var(--paper); border: 1px solid var(--line); color: var(--ink-soft); border-radius: 999px; padding: 6px 12px; font: 500 13px Inter, sans-serif; cursor: pointer; }
 </style>
 </head>
@@ -95,8 +109,8 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
   <div class="links">
     <span class="btn off" title="Coming soon">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h9l5 5v15H6zM14 3v5h5"/></svg>Paper (soon)</span>
-    <a class="btn" href="#video">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Video</a>
+    <a class="btn" href="#viewer">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 3 7v10l9 5 9-5V7zm0 2.3L18.7 8 12 11.7 5.3 8zM5 9.7l6 3.3v6.6l-6-3.3zm8 9.9V13l6-3.3v6.6z"/></svg>3D viewer</a>
     <span class="btn off" title="Code not public yet">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5z"/></svg>Code (private)</span>
   </div>
@@ -105,12 +119,35 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
 
 <main class="wrap">
 
-<section id="video">
-  <figure class="card media" style="margin:0">
-    <!-- Replace with a cleared capture:  <video src="assets/teaser.mp4" autoplay muted loop playsinline></video> -->
-    <div>Teaser video goes here<br><span style="font-family:'JetBrains Mono',monospace">assets/teaser.mp4</span></div>
-  </figure>
-  <figcaption>Decoded V-DMC mesh sequence next to the source capture.</figcaption>
+<section id="viewer">
+  <div class="card v3d-card">
+    <div class="v3d-scroll">
+      <div class="v3d" id="v3d">
+        <canvas id="v3d-canvas" aria-label="Interactive 3D comparison of decoded V-DMC meshes"></canvas>
+        <div class="v3d-corner"></div>
+        <div class="v3d-col">Base mesh</div>
+        <div class="v3d-col">Subdivision 1</div>
+        <div class="v3d-col">Subdivision 2</div>
+        <div class="v3d-col">Subdivision 3</div>
+        <div class="v3d-row"><span>Decimation</span><b>0.04</b></div>
+        <div class="v3d-cell" data-glb="assets/vdmc3d/d004_base.glb"><span>2,326 faces</span></div>
+        <div class="v3d-cell" data-glb="assets/vdmc3d/d004_sub1.glb"><span>9,304 faces</span></div>
+        <div class="v3d-cell" data-glb="assets/vdmc3d/d004_sub2.glb"><span>37,216 faces</span></div>
+        <div class="v3d-cell" data-glb="assets/vdmc3d/d004_sub3.glb"><span>148,864 faces</span></div>
+        <div class="v3d-row"><span>Decimation</span><b>0.01</b></div>
+        <div class="v3d-cell" data-glb="assets/vdmc3d/d001_base.glb"><span>2,446 faces</span></div>
+        <div class="v3d-cell" data-glb="assets/vdmc3d/d001_sub1.glb"><span>9,784 faces</span></div>
+        <div class="v3d-cell" data-glb="assets/vdmc3d/d001_sub2.glb"><span>39,136 faces</span></div>
+        <div class="v3d-cell" data-glb="assets/vdmc3d/d001_sub3.glb"><span>156,544 faces</span></div>
+      </div>
+    </div>
+    <div class="v3d-bar">
+      <span class="muted" id="v3d-status">Drag to rotate all eight together · scroll or pinch to zoom</span>
+      <button type="button" class="v3d-btn" id="v3d-tex" aria-pressed="true">Texture</button>
+      <button type="button" class="v3d-btn" id="v3d-reset">Reset view</button>
+    </div>
+  </div>
+  <figcaption>Frame 0 decoded by the V-DMC test model: the base mesh the encoder sends, then the decoded mesh at 1, 2 and 3 subdivision levels (each level splits every triangle in four and adds displacements). Top row decimation target 0.04, bottom row 0.01 (a different take of the same performer). Switch to clay to compare the geometry alone.</figcaption>
 </section>
 
 <section>
@@ -292,6 +329,117 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
   © 2026 French Touch Factory · ITHACA. Page layout in the style of academic project pages.
 </footer>
 
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+// 3D viewer: one renderer, one camera shared by all eight cells (scissor viewports), so dragging rotates them together.
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+const box = document.getElementById('v3d');
+const canvas = document.getElementById('v3d-canvas');
+const status = document.getElementById('v3d-status');
+const cells = [...box.querySelectorAll('.v3d-cell')];
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setScissorTest(true);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const camera = new THREE.PerspectiveCamera(28, 3 / 5, 0.05, 50);
+const home = { pos: new THREE.Vector3(0, 0.95, -4.2), target: new THREE.Vector3(0, 0.88, 0) };
+const controls = new OrbitControls(camera, box);
+controls.enableDamping = true;
+controls.enablePan = false;
+controls.minDistance = 0.6;
+controls.maxDistance = 9;
+function resetView() { camera.position.copy(home.pos); controls.target.copy(home.target); controls.update(); }
+resetView();
+
+const head = new THREE.DirectionalLight(0xffffff, 2.2);   // headlight: follows the camera
+camera.add(head); head.position.set(0.6, 0.8, 0.2);
+const clay = new THREE.MeshStandardMaterial({ color: 0xcfcdc6, roughness: 0.85, metalness: 0, flatShading: true });
+const scenes = cells.map(() => {
+  const s = new THREE.Scene();
+  s.add(new THREE.HemisphereLight(0xffffff, 0x8a8a80, 1.1));
+  return s;
+});
+const meshes = [];   // { mesh, textured }
+let showTexture = true;
+
+function applyLook() {
+  for (const m of meshes) m.mesh.material = (showTexture && m.textured) ? m.textured : clay;
+  requestRender();
+}
+
+function load() {
+  const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/');
+  const loader = new GLTFLoader().setDRACOLoader(draco);
+  let done = 0, failed = 0;
+  cells.forEach((cell, i) => {
+    loader.load(cell.dataset.glb, gltf => {
+      gltf.scene.traverse(o => {
+        if (!o.isMesh) return;
+        const tex = o.material && o.material.map ? o.material : null;
+        if (tex) { tex.metalness = 0; tex.roughness = 0.9; }
+        meshes.push({ mesh: o, textured: tex });
+      });
+      scenes[i].add(gltf.scene);
+      done++; progress(done, failed); applyLook();
+    }, undefined, () => { failed++; progress(done, failed); });
+  });
+  function progress(d, f) {
+    status.textContent = d + f < cells.length ? `Loading meshes… ${d} / ${cells.length}`
+      : f ? `${f} mesh(es) failed to load` : 'Drag to rotate all eight together · scroll or pinch to zoom';
+  }
+  progress(0, 0);
+}
+
+let needsRender = true;
+function requestRender() { needsRender = true; }
+controls.addEventListener('change', requestRender);
+new ResizeObserver(requestRender).observe(box);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', requestRender);
+
+function frame() {
+  requestAnimationFrame(frame);
+  const moving = controls.update();
+  if (!needsRender && !moving) return;
+  needsRender = false;
+  const w = box.clientWidth, h = box.clientHeight, dpr = Math.min(devicePixelRatio, 2);
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
+  }
+  renderer.setClearColor(0x000000, 0); renderer.setScissor(0, 0, w, h); renderer.clear();
+  const b = box.getBoundingClientRect();
+  cells.forEach((cell, i) => {
+    const r = cell.getBoundingClientRect();
+    const x = r.left - b.left, y = h - (r.bottom - b.top);
+    renderer.setViewport(x, y, r.width, r.height); renderer.setScissor(x, y, r.width, r.height);
+    camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
+    scenes[i].add(camera);   // the headlight is the camera's child; an object has one parent, so move it per cell
+    renderer.render(scenes[i], camera);
+  });
+}
+frame();
+
+document.getElementById('v3d-tex').addEventListener('click', e => {
+  showTexture = !showTexture;
+  e.currentTarget.textContent = showTexture ? 'Texture' : 'Clay';
+  e.currentTarget.setAttribute('aria-pressed', String(showTexture));
+  applyLook();
+});
+document.getElementById('v3d-reset').addEventListener('click', resetView);
+
+// load the 7 MB of meshes only when the viewer comes near the screen
+new IntersectionObserver((entries, obs) => {
+  if (entries.some(en => en.isIntersecting)) { obs.disconnect(); load(); }
+}, { rootMargin: '300px' }).observe(box);
+</script>
 <script>
 (function () {
   var root = document.documentElement, btn = document.getElementById('theme');
