@@ -122,7 +122,7 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
     <span class="btn off" title="Code not public yet">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5z"/></svg>Code (private)</span>
   </div>
-  <div class="tldr"><b>TL;DR</b> Brick TSDF → marching cubes → sliver-safe repair, inner-shell guard, smoothing and ear-clipped hole caps → decimate + texture bake → V-DMC at 54–147 KB per frame with sub-millimetre geometry error, plus Alembic export.</div>
+  <div class="tldr"><b>TL;DR</b> Brick TSDF → marching cubes → sliver-safe repair, inner-shell guard, smoothing and ear-clipped hole caps → decimate + texture bake → V-DMC from a ~2,500-face base mesh at 58–69 KB per frame (median geometry error ~0.3 mm), plus Alembic export.</div>
 </header>
 
 <main class="wrap">
@@ -137,7 +137,7 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
         <div class="v3d-col">Subdivision 1</div>
         <div class="v3d-col">Subdivision 2</div>
         <div class="v3d-col">Subdivision 3</div>
-        <div class="v3d-row"><span>Decimation</span><b>0.01</b></div>
+        <div class="v3d-row"><span>Jenny</span><b>0.01</b></div>
         <div class="v3d-cell" data-set="d001" data-kind="base"><span>2,446 faces</span></div>
         <div class="v3d-cell" data-set="d001" data-kind="sub1"><span>9,784 faces</span></div>
         <div class="v3d-cell" data-set="d001" data-kind="sub2"><span>39,136 faces</span></div>
@@ -157,7 +157,7 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
       <button type="button" class="v3d-btn" id="v3d-reset">Reset view</button>
     </div>
   </div>
-  <figcaption>Frame 0 decoded by the V-DMC test model: the base mesh the encoder sends, then the decoded mesh at 1, 2 and 3 subdivision levels (each level splits every triangle in four and adds displacements). Both rows use decimation target 0.01: top, the take used throughout this page; bottom, a second performer (Anais). Face counts are for frame 1. Play loads the decoded sequences at 30 fps: 10 frames for the top row, which loops twice as often, and 20 for Anais. Switch to clay to compare the geometry alone.</figcaption>
+  <figcaption>Frame 0 decoded by the V-DMC test model: the base mesh the encoder sends, then the decoded mesh at 1, 2 and 3 subdivision levels (each level splits every triangle in four and adds displacements). Both rows use decimation target 0.01: top Jenny, bottom Anais. Face counts are for frame 1. Play loads the decoded sequences at 30 fps: 10 frames for the top row, which loops twice as often, and 20 for Anais. Switch to clay to compare the geometry alone.</figcaption>
 </section>
 
 <section>
@@ -208,8 +208,8 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
     <div class="card stat"><div class="v">130k → 350</div><div class="k">open edges: raw marching-cubes mesh → reduced export (7 large unseen holes left open)</div></div>
     <div class="card stat"><div class="v">2,450 → &lt;110</div><div class="k">genus of the main body (tunnels and handles)</div></div>
     <div class="card stat"><div class="v">0.4 %</div><div class="k">double-layer faces in the encoded mesh, with hair kept</div></div>
-    <div class="card stat"><div class="v">54–147 KB</div><div class="k">per frame V-DMC (mesh + texture), depending on preset</div></div>
-    <div class="card stat"><div class="v">≤ 0.7 mm</div><div class="k">p99 geometry error of the decoded mesh (compromise preset)</div></div>
+    <div class="card stat"><div class="v">58–69 KB</div><div class="k">per frame V-DMC (mesh + texture), subdivision 3, decimation target 0.01</div></div>
+    <div class="card stat"><div class="v">0.3 mm</div><div class="k">median geometry error of the decoded mesh (p99 3.7–4.3 mm)</div></div>
     <div class="card stat"><div class="v">~33 s</div><div class="k">export per frame (mesh 3 s, decimate 10 s, UV 4 s, bake 10 s, write 6 s)</div></div>
   </div>
 </section>
@@ -235,90 +235,89 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
 </section>
 
 <section>
-  <h2>V-DMC compression</h2>
-  <h3>Presets (subdivision 3, decimation target 0.7, one frame)</h3>
-  <div class="card tbl">
-    <table>
-      <thead><tr><th>Preset</th><th>liftingQP / texture QP</th><th class="num">Size / frame</th><th class="num">Geometry error (median / p99)</th></tr></thead>
-      <tbody>
-        <tr><td>Best quality</td><td>10,16,16 / 18</td><td class="num">147 KB</td><td class="num">0.0 / 1.2 mm</td></tr>
-        <tr><td><b>Compromise</b></td><td>24,34,34 / 22</td><td class="num"><b>88 KB</b></td><td class="num">0.1 / 0.7 mm</td></tr>
-        <tr><td>Best compression</td><td>24,34,34 / 34</td><td class="num">54 KB</td><td class="num">0.1 / 0.7 mm</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <h3>Subdivision levels (liftingQP 22,28,28, texture QP 22)</h3>
-  <div class="card tbl">
-    <table>
-      <thead><tr><th>Subdivisions</th><th class="num">Decoded faces</th><th class="num">Size / frame</th><th class="num">Geometry error (p99)</th></tr></thead>
-      <tbody>
-        <tr><td>1</td><td class="num">87,452</td><td class="num">91.0 KB</td><td class="num">1.4 mm</td></tr>
-        <tr><td>2</td><td class="num">349,808</td><td class="num">92.4 KB</td><td class="num">1.4 mm</td></tr>
-        <tr><td>3</td><td class="num">1,399,232</td><td class="num">90.1 KB</td><td class="num">0.7 mm</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p class="muted" style="margin-top:10px">Point-to-surface distance from the decoded mesh to the exported mesh. Geometry stays near or under 1 mm in every case; the texture QP decides most of the size and the look, and the base mesh (~37 KB) is the largest fixed cost.</p>
-</section>
-
-<section>
-  <h2>Very coarse base mesh: decimation target 0.04, 20-frame sequence</h2>
-  <p>To cut the base mesh, the largest fixed cost above, the encoder's decimation target was lowered from 0.7 to 0.04: the source frames (~30,000 faces) become a base mesh of only <b>2,326 faces</b>, and the detail is carried by the subdivision displacements instead. All runs encode the same 20 frames (two groups of 10, inter coding on), 1024&times;1024 texture.</p>
+  <h2>Very coarse base mesh: decimation target 0.01</h2>
+  <p>The base mesh is the part V-DMC sends as a plain mesh; everything finer travels as wavelet displacements on top of it. With the encoder's decimation target at 0.01, the source frames (~33,000&ndash;35,000 faces) become a base mesh of only <b>2,446 faces (Jenny) and 2,704 faces (Anais)</b>. Two takes, two performers, same settings: liftingQP 22,28,28, texture QP 22, 1024&times;1024 texture, inter coding on; Jenny 10 frames, Anais 20.</p>
+  <h3>Jenny</h3>
   <figure style="margin:0">
     <div class="card stg-card">
       <div class="stg">
-        <div class="stg-h">Base<small>2,326 faces</small></div>
-        <div class="stg-h">Subdivided, no displacement<small>148,864 faces</small></div>
-        <div class="stg-h">+ LoD 0<small>148,864 faces</small></div>
-        <div class="stg-h">+ LoD 0&ndash;1<small>148,864 faces</small></div>
-        <div class="stg-h">+ LoD 0&ndash;2<small>148,864 faces</small></div>
-        <div class="stg-h">+ LoD 0&ndash;3 = decoded<small>148,864 faces</small></div>
-        <img src="assets/vdmc_stages/body_0.png" alt="Base mesh, front"><img src="assets/vdmc_stages/body_1.png" alt="Subdivided mesh, front">
-        <img src="assets/vdmc_stages/body_2.png" alt="Plus LoD 0, front"><img src="assets/vdmc_stages/body_3.png" alt="Plus LoD 0 to 1, front">
-        <img src="assets/vdmc_stages/body_4.png" alt="Plus LoD 0 to 2, front"><img src="assets/vdmc_stages/body_5.png" alt="Decoded mesh, front">
-        <img src="assets/vdmc_stages/head_0.png" alt="Base mesh, head"><img src="assets/vdmc_stages/head_1.png" alt="Subdivided head, no displacement">
-        <img src="assets/vdmc_stages/head_2.png" alt="Head plus LoD 0, coloured by displacement"><img src="assets/vdmc_stages/head_3.png" alt="Head plus LoD 0 to 1, coloured by displacement">
-        <img src="assets/vdmc_stages/head_4.png" alt="Head plus LoD 0 to 2, coloured by displacement"><img src="assets/vdmc_stages/head_5.png" alt="Decoded head, coloured by displacement">
-        <div class="stg-n">head</div><div class="stg-n">moved: 0.00 / 0.00 mm</div><div class="stg-n">moved: 0.47 / 2.4 mm</div>
-        <div class="stg-n">moved: 0.95 / 7.4 mm</div><div class="stg-n">moved: 1.16 / 8.0 mm</div><div class="stg-n">moved: 1.18 / 8.3 mm</div>
+        <div class="stg-h">Base<small>2,446 faces</small></div>
+        <div class="stg-h">Subdivided, no displacement<small>156,544 faces</small></div>
+        <div class="stg-h">+ LoD 0<small>156,544 faces</small></div>
+        <div class="stg-h">+ LoD 0&ndash;1<small>156,544 faces</small></div>
+        <div class="stg-h">+ LoD 0&ndash;2<small>156,544 faces</small></div>
+        <div class="stg-h">+ LoD 0&ndash;3 = decoded<small>156,544 faces</small></div>
+        <img src="assets/vdmc_stages/jenny/body_0.png" alt="Jenny: Base mesh, front" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/body_1.png" alt="Jenny: Subdivided mesh, front" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/body_2.png" alt="Jenny: Plus LoD 0, front" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/body_3.png" alt="Jenny: Plus LoD 0 to 1, front" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/body_4.png" alt="Jenny: Plus LoD 0 to 2, front" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/body_5.png" alt="Jenny: Decoded mesh, front" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/head_0.png" alt="Jenny: Base mesh, head, coloured by displacement" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/head_1.png" alt="Jenny: Subdivided mesh, head, coloured by displacement" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/head_2.png" alt="Jenny: Plus LoD 0, head, coloured by displacement" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/head_3.png" alt="Jenny: Plus LoD 0 to 1, head, coloured by displacement" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/head_4.png" alt="Jenny: Plus LoD 0 to 2, head, coloured by displacement" loading="lazy">
+        <img src="assets/vdmc_stages/jenny/head_5.png" alt="Jenny: Decoded mesh, head, coloured by displacement" loading="lazy">
+        <div class="stg-n">head</div><div class="stg-n">moved: 0.00 / 0.00 mm</div><div class="stg-n">moved: 0.43 / 2.6 mm</div><div class="stg-n">moved: 0.74 / 7.6 mm</div><div class="stg-n">moved: 0.89 / 8.1 mm</div><div class="stg-n">moved: 0.94 / 8.1 mm</div>
       </div>
       <div class="stg-scale"><span>0 mm</span><i></i><span>2 mm +</span></div>
     </div>
-    <figcaption>Frame 0, best quality, subdivision 3, seen from the front: the base mesh, the subdivided mesh, then each level of displacement added. Bottom: the head, coloured by how far each vertex moved from the subdivided mesh (median / p99 over the top 32 cm).</figcaption>
   </figure>
 
-  <h3>Presets (subdivision 3)</h3>
-  <div class="card tbl">
-    <table>
-      <thead><tr><th>Preset</th><th>liftingQP / texture QP</th><th class="num">Size / frame</th><th class="num">Base / disp. / texture</th><th class="num">Geometry error (median / p99)</th></tr></thead>
-      <tbody>
-        <tr><td>Best quality</td><td>10,16,16 / 18</td><td class="num">111 KB</td><td class="num">7 / 30 / 64 %</td><td class="num">0.20 / 3.7 mm</td></tr>
-        <tr><td><b>Compromise</b></td><td>24,34,34 / 22</td><td class="num"><b>66 KB</b></td><td class="num">11 / 18 / 70 %</td><td class="num">0.37 / 3.8 mm</td></tr>
-        <tr><td>Best compression</td><td>24,34,34 / 34</td><td class="num">31 KB</td><td class="num">23 / 39 / 38 %</td><td class="num">0.37 / 3.8 mm</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <h3>Anais</h3>
+  <figure style="margin:0">
+    <div class="card stg-card">
+      <div class="stg">
+        <div class="stg-h">Base<small>2,704 faces</small></div>
+        <div class="stg-h">Subdivided, no displacement<small>173,056 faces</small></div>
+        <div class="stg-h">+ LoD 0<small>173,056 faces</small></div>
+        <div class="stg-h">+ LoD 0&ndash;1<small>173,056 faces</small></div>
+        <div class="stg-h">+ LoD 0&ndash;2<small>173,056 faces</small></div>
+        <div class="stg-h">+ LoD 0&ndash;3 = decoded<small>173,056 faces</small></div>
+        <img src="assets/vdmc_stages/anais/body_0.png" alt="Anais: Base mesh, front" loading="lazy">
+        <img src="assets/vdmc_stages/anais/body_1.png" alt="Anais: Subdivided mesh, front" loading="lazy">
+        <img src="assets/vdmc_stages/anais/body_2.png" alt="Anais: Plus LoD 0, front" loading="lazy">
+        <img src="assets/vdmc_stages/anais/body_3.png" alt="Anais: Plus LoD 0 to 1, front" loading="lazy">
+        <img src="assets/vdmc_stages/anais/body_4.png" alt="Anais: Plus LoD 0 to 2, front" loading="lazy">
+        <img src="assets/vdmc_stages/anais/body_5.png" alt="Anais: Decoded mesh, front" loading="lazy">
+        <img src="assets/vdmc_stages/anais/head_0.png" alt="Anais: Base mesh, head, coloured by displacement" loading="lazy">
+        <img src="assets/vdmc_stages/anais/head_1.png" alt="Anais: Subdivided mesh, head, coloured by displacement" loading="lazy">
+        <img src="assets/vdmc_stages/anais/head_2.png" alt="Anais: Plus LoD 0, head, coloured by displacement" loading="lazy">
+        <img src="assets/vdmc_stages/anais/head_3.png" alt="Anais: Plus LoD 0 to 1, head, coloured by displacement" loading="lazy">
+        <img src="assets/vdmc_stages/anais/head_4.png" alt="Anais: Plus LoD 0 to 2, head, coloured by displacement" loading="lazy">
+        <img src="assets/vdmc_stages/anais/head_5.png" alt="Anais: Decoded mesh, head, coloured by displacement" loading="lazy">
+        <div class="stg-n">head</div><div class="stg-n">moved: 0.00 / 0.00 mm</div><div class="stg-n">moved: 0.37 / 2.6 mm</div><div class="stg-n">moved: 0.68 / 6.8 mm</div><div class="stg-n">moved: 0.78 / 7.6 mm</div><div class="stg-n">moved: 0.81 / 7.7 mm</div>
+      </div>
+      <div class="stg-scale"><span>0 mm</span><i></i><span>2 mm +</span></div>
+    </div>
+  </figure>
 
-  <h3>Subdivision levels (liftingQP 22,28,28, texture QP 22)</h3>
+  <p class="muted" style="margin-top:10px">Frame 0, subdivision 3, seen from the front: the base mesh, the subdivided mesh, then each level of displacement added. Bottom rows: the head, coloured by how far each vertex moved from the subdivided mesh (median / p99 over the top 32 cm).</p>
+
+  <h3>Subdivision levels</h3>
   <div class="card tbl">
     <table>
-      <thead><tr><th>Subdivisions</th><th class="num">Decoded faces / frame</th><th class="num">Size / frame</th><th class="num">Geometry error (median / p99)</th></tr></thead>
+      <thead><tr><th>Performer</th><th>Subdivisions</th><th class="num">Decoded faces / frame</th><th class="num">Size / frame</th><th class="num">Base / disp. / texture</th><th class="num">Geometry error (median / p99)</th></tr></thead>
       <tbody>
-        <tr><td>1</td><td class="num">9,304</td><td class="num">53 KB</td><td class="num">0.35 / 6.1 mm</td></tr>
-        <tr><td>2</td><td class="num">37,216</td><td class="num">62 KB</td><td class="num">0.31 / 4.1 mm</td></tr>
-        <tr><td>3</td><td class="num">148,864</td><td class="num">68 KB</td><td class="num">0.33 / 3.7 mm</td></tr>
+        <tr><td rowspan="3">Jenny<br><span class="muted">10 frames</span></td><td>1</td><td class="num">9,784</td><td class="num">51 KB</td><td class="num">11 / 7 / 82 %</td><td class="num">0.35 / 6.3 mm</td></tr>
+        <tr><td>2</td><td class="num">39,136</td><td class="num">62 KB</td><td class="num">13 / 14 / 73 %</td><td class="num">0.30 / 3.7 mm</td></tr>
+        <tr><td>3</td><td class="num">156,544</td><td class="num">69 KB</td><td class="num">11 / 23 / 65 %</td><td class="num">0.33 / 3.7 mm</td></tr>
+        <tr><td rowspan="3">Anais<br><span class="muted">20 frames</span></td><td>1</td><td class="num">10,816</td><td class="num">36 KB</td><td class="num">7 / 11 / 81 %</td><td class="num">0.44 / 7.2 mm</td></tr>
+        <tr><td>2</td><td class="num">43,264</td><td class="num">44 KB</td><td class="num">8 / 23 / 69 %</td><td class="num">0.38 / 5.9 mm</td></tr>
+        <tr><td>3</td><td class="num">173,056</td><td class="num">58 KB</td><td class="num">12 / 28 / 60 %</td><td class="num">0.35 / 4.3 mm</td></tr>
       </tbody>
     </table>
   </div>
 
   <ul style="margin-top:14px">
-    <li><b>The base mesh shrinks to ~7 KB per frame</b> (from ~37 KB), and the compromise preset drops from 88 to <b>66 KB per frame</b> (~16 Mbit/s at 30 fps); best compression reaches 31 KB.</li>
-    <li><b>Geometry pays for it:</b> the median error stays at 0.2&ndash;0.4 mm, but the p99 rises to ~3.7 mm at subdivision 3 (0.7 mm with the 0.7 target), and to 6.1 mm at subdivision 1 &mdash; a 2,326-face base cannot follow fine shapes (fingers, hair, folds) that the displacements then have to reach.</li>
-    <li>Geometry settings decide the error: compromise and best compression share the same liftingQP and decode to the same geometry; the texture QP only changes size and look.</li>
-    <li>The base mesh was coded intra in every frame (0 B inter at subdivision 3) even with inter coding on, so the temporal saving is still to be had.</li>
-    <li>Encoding takes 38&ndash;48 s per frame (mostly texture compression and pre-processing); decoding 20 frames takes 2.6 s.</li>
+    <li><b>The base mesh costs only 3&ndash;8 KB per frame.</b> At subdivision 3 a frame is 69 KB for Jenny and 58 KB for Anais (~17 and ~14 Mbit/s at 30 fps); the texture is 60&ndash;80 % of every frame.</li>
+    <li><b>Each subdivision level halves the outliers:</b> the median error stays at 0.3&ndash;0.4 mm throughout, but the p99 falls from 6&ndash;7 mm at one level to 3.7&ndash;4.3 mm at three. A 2,500-face base cannot follow fingers, hair or folds; the displacements have to reach them.</li>
+    <li><b>Most of the shape arrives in the first two levels</b> of displacement (LoD 0&ndash;1 in the head rows); LoD 2 and 3 add little geometry but most of the decoded faces.</li>
+    <li><b>Inter coding only partly works:</b> Anais's base mesh is predicted from the previous frame at every level, Jenny's only at subdivision 1 &mdash; at 2 and 3 it is coded intra in every frame.</li>
+    <li>Encoding takes 43&ndash;69 s per frame (mostly texture compression and pre-processing); decoding a 20-frame sequence takes a few seconds.</li>
   </ul>
-  <p class="muted">Error: distance from every decoded vertex to the source frame's surface, all 20 frames, in millimetres (encoder units 2.34 per mm).</p>
+  <p class="muted">Error: distance from every decoded vertex to the source frame's surface, all frames, in millimetres.</p>
 </section>
 
 <section>
@@ -336,8 +335,8 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
   <ul>
     <li>Raycast preview of the TSDF in Unity, to tell volume problems from meshing problems.</li>
     <li>Surface Nets as an alternative to marching cubes: fewer slivers, fewer and better-shaped triangles.</li>
-    <li>A decimation target between 0.04 and 0.7: the base mesh is now ~7 KB per frame at 0.04, but its p99 geometry error rose to ~3.7 mm; a middle target should keep most of the size saving at closer to 1 mm.</li>
-    <li>Get the base mesh coded inter (it is still intra in every frame) to save across frames.</li>
+    <li>A slightly finer base mesh: at decimation target 0.01 the base costs only 3&ndash;8 KB per frame but the p99 error is 3.7&ndash;4.3 mm; a somewhat larger base should cut the outliers for a few KB more.</li>
+    <li>Get the base mesh coded inter at every subdivision level (Jenny's is still intra at levels 2 and 3).</li>
   </ul>
 </section>
 
