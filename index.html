@@ -215,26 +215,6 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
 </section>
 
 <section>
-  <h2>Making the mesh watertight</h2>
-  <p class="muted">Each idea was switched on and off in Play mode while a live readout reported open edges, hole loops, non-manifold edges, pieces and genus. Ideas that did not move the numbers were removed.</p>
-  <div class="card tbl">
-    <table>
-      <thead><tr><th>Change</th><th>Measured effect</th><th></th></tr></thead>
-      <tbody>
-        <tr><td>Keep thin marching-cubes slivers in repair</td><td>~66k slivers per frame had been deleted: open edges −91 %, hole loops −98 %, genus −90 %</td><td><span class="tag good">kept</span></td></tr>
-        <tr><td>Smooth the field near the surface</td><td>Genus −55 %, pieces −45 %, non-manifold edges to ~0</td><td><span class="tag good">kept</span></td></tr>
-        <tr><td>Inner-shell guard on raw values (max jump 1.9)</td><td>Removes the shell ~2 cm under the skin, keeps noisy hair (1.5 on smoothed values ate the hair)</td><td><span class="tag good">kept</span></td></tr>
-        <tr><td>Enclosed depth dropouts count as inside</td><td>Small extra gain on top of smoothing</td><td><span class="tag good">kept</span></td></tr>
-        <tr><td>Ear-clipped hole caps (≤ 300 edges)</td><td>Closes every remaining small hole; no fan spikes; no duplicate faces</td><td><span class="tag good">kept</span></td></tr>
-        <tr><td>Wider fill reach</td><td>No measurable change</td><td><span class="tag bad">removed</span></td></tr>
-        <tr><td>Unknown voxels as outside</td><td>No measurable change</td><td><span class="tag bad">removed</span></td></tr>
-        <tr><td>Centre-fan hole caps</td><td>Long spikes across large unseen holes</td><td><span class="tag bad">replaced</span></td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<section>
   <h2>Very coarse base mesh: decimation target 0.01</h2>
   <p>The base mesh is the part V-DMC sends as a plain mesh; everything finer travels as wavelet displacements on top of it. With the encoder's decimation target at 0.01, the source frames (~33,000&ndash;35,000 faces) become a base mesh of only <b>2,446 faces (Jenny) and 2,704 faces (Anais)</b>. Two takes, two performers, same settings: liftingQP 22,28,28, texture QP 22, 1024&times;1024 texture, inter coding on; Jenny 10 frames, Anais 20.</p>
   <h3>Jenny</h3>
