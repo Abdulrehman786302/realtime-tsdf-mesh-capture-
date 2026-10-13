@@ -1,18 +1,24 @@
-# Watertight Volumetric Mesh Capture (TSDF → V-DMC / Alembic) — project page
+# Watertight Volumetric Mesh Capture (TSDF → V-DMC / Alembic)
 
-Static project page (single `index.html`, no build step) for GitHub Pages.
+### ▶ Project page: **https://abdulrehman786302.github.io/realtime-tsdf-mesh-capture-/**
 
-## Publish
-1. Create an empty repository on GitHub (e.g. `realtime-tsdf-mesh-capture`).
-2. Push this folder to its `main` branch.
-3. Repository **Settings → Pages → Source: Deploy from a branch → `main` / root**.
-4. The page appears at `https://<user>.github.io/<repo>/`.
+[![A decoded V-DMC mesh frame of the guitarist](assets/vdmc_stages/jenny/body_5.png)](https://abdulrehman786302.github.io/realtime-tsdf-mesh-capture-/)
 
-## Add media
-Put cleared captures in `assets/` and replace the placeholder in the `#video` section of `index.html`:
+A 10-camera RGB-D rig fused into a sparse TSDF, meshed by marching cubes, cleaned to an almost watertight textured
+mesh, and exported as V-DMC bitstreams and Alembic.
 
-```html
-<video src="assets/teaser.mp4" autoplay muted loop playsinline></video>
-```
+**Pipeline:** brick TSDF → marching cubes → sliver-safe repair, inner-shell guard, smoothing and ear-clipped hole caps
+→ decimation and texture bake → V-DMC from a ~2,500-face base mesh, plus Alembic export.
 
-Keep videos short (H.264 MP4, a few MB) so the page loads fast.
+## Key numbers
+
+| | |
+|---|---|
+| **58–69 KB** | per frame, V-DMC (mesh + texture), subdivision 3, decimation target 0.01 |
+| **0.3 mm** | median geometry error of the decoded mesh (p99 3.7–4.3 mm) |
+| **~33 s** | export per frame (mesh 3 s, decimate 10 s, UV 4 s, bake 10 s, write 6 s) |
+
+## This repository
+
+The project page only: a static `index.html` (no build step) and its media in `assets/`, served by GitHub Pages from
+`main` / root. The capture pipeline itself is not public.
