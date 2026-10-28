@@ -161,6 +161,15 @@ footer { padding: 40px 0 60px; color: var(--ink-faint); font-size: 13px; text-al
 </section>
 
 <section>
+  <figure style="margin:0">
+    <div class="card" style="padding:10px">
+      <video src="assets/video/anais_base_vs_vdmc.mp4" poster="assets/video/anais_base_vs_vdmc.jpg" controls loop muted playsinline preload="metadata" style="display:block;width:100%;height:auto;border-radius:8px"></video>
+    </div>
+    <figcaption>Anais, 20 decoded frames looped at 30 fps: the base mesh (left, with the frame's decoded texture) and the V-DMC decoded mesh at subdivision 3 (right), textured, then clay with wireframe. Sizes are averages per frame over the sequence; the base-mesh size (base mesh + texture) is estimated from the base / displacement / texture split in the table below.</figcaption>
+  </figure>
+</section>
+
+<section>
   <h2>Abstract</h2>
   <p>We build a mesh-based volumetric video pipeline for a calibrated 10-camera RGB-D rig. Depth is fused into a sparse truncated signed distance field (8³ voxel bricks, 3.5 mm voxels, 2 cm truncation) with push-pull hole filling and silhouette and free-space carving. Marching cubes extracts the surface; a repair stage keeps thin triangles that a naive cleanup would delete, a guard on the raw field removes the inner shell that carving leaves under the skin, and boundary loops up to 300 edges are closed by ear clipping. The cleaned mesh is decimated, UV-unwrapped and texture-baked, then compressed with the MPEG V-DMC test model and exported to Alembic. Every change was tested live on a watertightness readout in Unity before being kept.</p>
 </section>
